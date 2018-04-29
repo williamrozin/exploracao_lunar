@@ -2,10 +2,10 @@
   "name": "exploracao-lunar",
   "version": "0.0.1",
   "description": "ITC `exploração lunar` work",
-  "main": "main.js",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Ok\"",
-    "start": "node main.js > tests/results.output"
+    "start": "node index.js > tests/results.output"
   },
   "author": "William Rozin Gaspar",
   "license": "MIT",
