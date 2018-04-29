@@ -1,21 +1,79 @@
 const fs = require('fs')
-const { head, tail, take } = require('ramda')
+const {
+    __,
+    complement,
+    contains,
+    splitAt,
+    find,
+    flatten,
+    forEachObjIndexed,
+    indexBy,
+    is,
+    map,
+    pluck,
+    prop,
+    split
+} = require('ramda')
 
-const outputFile = fs.createWriteStream('exploracao_lunar.output', { 'flags': 'a' });
+fs.readFile('./tests/exploracao_lunar.input', 'utf-8', (err, content) => {
+    const tests = split('\n \n', content)
 
-fs.readFile('./exploracao_lunar.input', 'utf-8', (err, data) => {
-    const cases = data.split('\n \n')
-    cases.map(processPath)
+    tests.forEach(test => {
+        const [size, ...body] = split('\n', test)
+        const [matrix, entries] = splitAt(size, body)
+
+        const lines = map(toVertex, matrix)
+        const names = pluck('name', lines)
+        const vertices = indexBy(prop('name'), lines)
+
+        forEachObjIndexed(vertex => {
+            vertex.edges = vertex.edges.map(edge => vertices[names[edge]])
+        }, vertices)
+
+        entries.forEach(entry => {
+            const [left, right] = split(' ', entry)
+            forEachObjIndexed(vertex => vertex.refcount = 0, vertices)
+
+            if (contains('GOOD_BOY', flatten(hasLink(vertices[left], vertices[right])))) {
+                process.stdout.write('* ')
+            } else {
+                process.stdout.write('! ')
+            }
+        })
+
+        process.stdout.write('\n')
+    })
 })
 
+function toVertex(line) {
+    const paths = split(' ', line)
+    const name = find(complement(contains(__, ['.', '*'])), paths)
+    const edges = paths
+        .map((value, index) => value === '.' && index)
+        .filter(is(Number))
 
-function processPath(data) {
-    const size = head(data.split('\n'))
-    const path = tail(data.split('\n'))
-    const possibilities = path[size]
+    return { name, edges, refcount: 0 }
+}
 
-    // TODO logic
+function hasLink(source, target) {
+    const isDirectLink = (source, target) => {
+        if (!source || !target) {
+            return ['FUI_TAPEADO']
+        }
 
-    outputFile.write(possibilities)
-    outputFile.write('\n')
+        if (source.refcount > 1) {
+            return ['CYCLIC']
+        }
+
+        return source.edges.map(edge => {
+            edge.refcount++
+            if (edge === target) {
+                return ['GOOD_BOY']
+            }
+
+            return isDirectLink(edge, target)
+        })
+    }
+
+    return isDirectLink(source, target)
 }
